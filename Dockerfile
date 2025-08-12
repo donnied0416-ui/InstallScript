@@ -1,35 +1,25 @@
-FROM odoo:16.0
+# Use official Odoo image
+FROM odoo:17.0
 
-# Install extra dependencies (if needed)
-USER root
-RUN apt-get update && apt-get install -y \
-    git \
-    python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+# Set environment variables
+ENV ODOO_RC=/etc/odoo/odoo.conf
 
-# Set working directory
-WORKDIR /opt/odoo
+# Create addons directory
+RUN mkdir -p /mnt/extra-addons
 
-# Add ~/.local/bin to PATH to avoid warnings
-ENV PATH="/opt/odoo/.local/bin:${PATH}"
+# Copy your custom module from local folder to container
+COPY ./your-module /mnt/extra-addons/your-module
 
-# Clone your custom modules into a separate folder
-RUN mkdir -p /mnt/extra-addons && \
-    git clone https://github.com/your-repo/your-module.git /mnt/extra-addons/your-module
+# Copy Odoo configuration file
+COPY ./odoo.conf /etc/odoo/odoo.conf
 
-# Install Python dependencies for your custom modules
-RUN pip install --no-cache-dir --user \
-    pyserial \
-    Babel \
-    qrcode \
-    libsass \
-    ics
+# Set permissions
+RUN chown -R odoo:odoo /mnt/extra-addons && \
+    chown odoo:odoo /etc/odoo/odoo.conf
 
-# Ensure Odoo owns its folders
-RUN chown -R odoo:odoo /mnt/extra-addons /opt/odoo
+# Expose default Odoo port
+EXPOSE 8069
 
-# Switch back to Odoo user
+# Start Odoo
 USER odoo
-
-# Launch Odoo with your custom addons path
-CMD ["odoo", "--addons-path=/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons"]
+CMD ["odoo", "-c", "/etc/odoo/odoo.conf"]
